@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>HTTPとHTML ― ウェブの基本的な仕組み</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    line-height: 1.9;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    color: #2c3e50;
+    background: #f5f7fa;
+  }
+  h1 {
+    font-size: 2em;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 24px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  h2 {
+    color: #2c3e50;
+    border-left: 6px solid #667eea;
+    padding: 10px 16px;
+    background: #fff;
+    margin-top: 40px;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  h3 {
+    color: #5a67d8;
+    margin-top: 28px;
+    border-bottom: 2px dotted #c7d2fe;
+    padding-bottom: 6px;
+  }
+  h4 {
+    color: #4338ca;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+  .section {
+    background: #fff;
+    padding: 28px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  /* リクエスト/レスポンス図 */
+  .req-res-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin: 24px 0;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .node {
+    background: #fff;
+    border: 3px solid #667eea;
+    border-radius: 12px;
+    padding: 20px 28px;
+    text-align: center;
+    font-weight: bold;
+    min-width: 160px;
+    box-shadow: 0 4px 10px rgba(102,126,234,0.2);
+  }
+  .node .icon { font-size: 2.5em; display: block; margin-bottom: 8px; }
+  .node.browser { border-color: #4299e1; }
+  .node.server { border-color: #48bb78; }
+  .arrows {
+    flex: 1;
+    min-width: 220px;
+    text-align: center;
+  }
+  .arrow-line {
+    padding: 10px 20px;
+    margin: 8px 0;
+    border-radius: 24px;
+    font-weight: bold;
+  }
+  .arrow-request {
+    background: #fef3c7;
+    color: #92400e;
+    border: 2px solid #f59e0b;
+  }
+  .arrow-response {
+    background: #d1fae5;
+    color: #065f46;
+    border: 2px solid #10b981;
+  }
+
+  /* 6ステップの流れ */
+  .steps { counter-reset: step; margin: 24px 0; }
+  .step {
+    position: relative;
+    background: linear-gradient(to right, #eef2ff, #fff);
+    padding: 22px 22px 22px 85px;
+    margin-bottom: 18px;
+    border-radius: 10px;
+    border-left: 5px solid #667eea;
+    counter-increment: step;
+  }
+  .step::before {
+    content: counter(step);
+    position: absolute;
+    left: 20px;
+    top: 28px;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.5em;
+    box-shadow: 0 2px 6px rgba(102,126,234,0.4);
+  }
+  .step-title {
+    font-weight: bold;
+    color: #4a5568;
+    font-size: 1.15em;
+    margin-bottom: 8px;
+  }
+
+  /* DNS 図 */
+  .dns-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+    padding: 16px;
+    background: #f0f4ff;
+    border-radius: 8px;
+  }
+  .dns-box {
+    background: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 2px dashed #667eea;
+    font-family: monospace;
+  }
+  .dns-arrow { font-size: 1.5em; color: #667eea; }
+
+  /* HTTP メッセージ */
+  .http-message {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-family: "Consolas", monospace;
+    margin: 12px 0;
+    font-size: 0.95em;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+  .http-message .method { color: #fbbf24; font-weight: bold; }
+  .http-message .path { color: #60a5fa; }
+  .http-message .header-name { color: #c084fc; }
+  .http-message .status { color: #34d399; font-weight: bold; }
+  .http-message .comment { color: #64748b; font-style: italic; }
+
+  /* メソッド表 */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: #fff;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  th {
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: bold;
+  }
+  tr:hover td { background: #f8fafc; }
+  td code { font-size: 0.95em; }
+
+  /* ステータスコード一覧 */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .status-card {
+    padding: 14px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+  }
+  .status-1xx { background: #e0e7ff; color: #3730a3; border: 2px solid #6366f1; }
+  .status-2xx { background: #d1fae5; color: #065f46; border: 2px solid #10b981; }
+  .status-3xx { background: #dbeafe; color: #1e40af; border: 2px solid #3b82f6; }
+  .status-4xx { background: #fef3c7; color: #92400e; border: 2px solid #f59e0b; }
+  .status-5xx { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+  .status-code { font-size: 1.6em; display: block; }
+
+  /* 配達の例え */
+  .analogy {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 20px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 12px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .analogy-item { text-align: center; }
+  .analogy-item .emoji { font-size: 3em; display: block; }
+  .analogy-item .label { font-weight: bold; color: #78350f; margin-top: 4px; }
+  .analogy-arrow { font-size: 2em; color: #78350f; }
+
+  /* フロー */
+  .flow-diagram {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    border: 2px solid #e2e8f0;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .flow-actor {
+    font-weight: bold;
+    min-width: 100px;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 6px;
+    text-align: center;
+    border: 2px solid #667eea;
+  }
+  .flow-actor.server { border-color: #48bb78; }
+  .flow-msg {
+    flex: 1;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 6px;
+    min-width: 220px;
+  }
+  .flow-arrow { font-size: 1.4em; color: #667eea; font-weight: bold; }
+
+  /* 補足ボックス */
+  .note {
+    background: #f0f9ff;
+    border-left: 5px solid #0ea5e9;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+  }
+  .note-title {
+    font-weight: bold;
+    color: #0c4a6e;
+    margin-bottom: 6px;
+  }
+  .warning {
+    background: #fff7ed;
+    border-left: 5px solid #f97316;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+  }
+  .warning-title { font-weight: bold; color: #9a3412; margin-bottom: 6px; }
+
+  /* HTMLのツリー */
+  .html-tree {
+    background: #f8fafc;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 0.95em;
+    border: 2px solid #e2e8f0;
+    margin: 12px 0;
+    line-height: 1.7;
+  }
+  .tag { color: #e11d48; }
+  .attr { color: #7c3aed; }
+  .txt { color: #0f766e; }
+
+  /* TLS 図 */
+  .tls-diagram {
+    background: #ecfccb;
+    padding: 16px;
+    border-radius: 10px;
+    margin: 16px 0;
+    border: 2px dashed #65a30d;
+    text-align: center;
+  }
+
+  /* リスト装飾 */
+  ul { padding-left: 24px; }
+  li { margin: 6px 0; }
+  .highlight {
+    background: linear-gradient(transparent 60%, #fde68a 60%);
+    font-weight: bold;
+    padding: 0 2px;
+  }
+  code {
+    background: #eef2ff;
+    color: #4338ca;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "Consolas", monospace;
+    font-size: 0.95em;
+  }
+
+  /* 2カラム */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  @media (max-width: 720px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+  .col-card {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 10px;
+    border-top: 4px solid #667eea;
+  }
+  .col-card.alt { border-top-color: #48bb78; }
+</style>
+</head>
+<body>
+
+<h1>🌐 HTTPとHTML ― ウェブの基本的な仕組み</h1>
+
+<!-- ========== HTTPとは ========== -->
+<div class="section">
+  <h2>📡 HTTPとは何か</h2>
+  <p>
+    <strong>HTTP（HyperText Transfer Protocol）</strong>は、ウェブブラウザとウェブサーバーの間で情報をやり取りするための
+    <span class="highlight">「約束事（プロトコル）」</span>です。
+    わかりやすく言うと、<strong>「ブラウザがサーバーに何かをお願いするときのルール」</strong>のことです。
+  </p>
+  <p>
+    世界中の人がそれぞれ勝手な方法でサーバーと会話してしまうと、互換性が取れずウェブは機能しません。
+    そのため、<strong>「こういう書式でお願いし、こういう書式で返答する」</strong>という共通ルールをあらかじめ決めておく必要があります。これがHTTPです。
+  </p>
+
+  <div class="req-res-diagram">
+    <div class="node browser">
+      <span class="icon">🖥️</span>
+      ブラウザ<br>(クライアント)
+    </div>
+    <div class="arrows">
+      <div class="arrow-line arrow-request">➡️ リクエスト「このページをください」</div>
+      <div class="arrow-line arrow-response">⬅️ レスポンス「はい、どうぞ」</div>
+    </div>
+    <div class="node server">
+      <span class="icon">🗄️</span>
+      サーバー
+    </div>
+  </div>
+
+  <p>
+    HTTPの基本動作は、この<strong>「リクエスト（要求）」</strong>と<strong>「レスポンス（応答）」</strong>の2種類しかありません。
+    ブラウザが「このページが欲しい」とお願いし、サーバーが「はい、こちらです」と返す ― この単純なやり取りの繰り返しだけで、ウェブは成り立っています。
+  </p>
+
+  <div class="note">
+    <div class="note-title">💡 ステートレスという重要な性質</div>
+    HTTPには「<strong>ステートレス</strong>」という特徴があります。これは、<em>1回ごとのリクエストが独立している</em>という意味です。
+    サーバーは「さっきのお客さん」と「今来たお客さん」を原則として区別しません。
+    そのため、ログイン状態などを保つには <strong>Cookie</strong> や <strong>セッション</strong> といった追加の仕組みが使われます。
+  </div>
+
+  <div class="note">
+    <div class="note-title">🔐 HTTPとHTTPSの違い</div>
+    <strong>HTTP</strong> は通信内容が「平文（ひらぶん）」で流れるため、途中で盗み見ることができてしまいます。
+    <strong>HTTPS</strong> はHTTPを<strong>TLS</strong>という暗号化の層で包んだもので、途中で盗聴・改ざんされても内容が分からないようになっています。現在のウェブでは、HTTPSが標準です。
+  </div>
+</div>
+
+<!-- ========== ブラウザの流れ ========== -->
+<div class="section">
+  <h2>🚀 ブラウザがウェブサイトを読み込む流れ</h2>
+  <p>
+    たとえば、アドレスバーに <code>https://example.com</code> と入力してエンターを押すと、ほんの一瞬のうちに、裏側では次のような処理が順に行われます。
+  </p>
+
+  <div class="steps">
+
+    <!-- ステップ1 -->
+    <div class="step">
+      <div class="step-title">🔍 DNSによる住所解決</div>
+      <p>
+        <code>example.com</code> のようなドメイン名は、人間には読みやすいですが、コンピュータはそれだけでは相手の場所を特定できません。
+        ネットワーク上では、コンピュータは <strong>IPアドレス</strong>（例：<code>93.184.216.34</code>）という数字の住所で互いを識別しています。
+      </p>
+      <p>
+        そこで最初に、<strong>DNS（Domain Name System）</strong>というインターネット上の「電話帳サービス」に問い合わせて、ドメイン名をIPアドレスに変換します。
+      </p>
+      <div class="dns-diagram">
+        <div class="dns-box">example.com</div>
+        <div class="dns-arrow">➡️ DNSサーバーに問合せ ➡️</div>
+        <div class="dns-box">93.184.216.34</div>
+      </div>
+      <p>📞 <em>電話帳で「山田さん」の電話番号を調べるのと同じイメージです。</em>
+      なお、一度調べた結果はしばらく端末内にキャッシュされ、次回以降は高速化されます。</p>
+    </div>
+
+    <!-- ステップ2 -->
+    <div class="step">
+      <div class="step-title">🔌 サーバーへの接続（TCP / TLS）</div>
+      <p>
+        IPアドレスがわかったら、ブラウザはそのサーバーに向けて<strong>TCP接続</strong>を張ります。
+        TCPは「データを正確に届けるための下地（トランスポート層）」の役割を果たします。
+      </p>
+      <p>
+        URLが <code>https://</code> で始まる場合は、さらに<strong>TLSハンドシェイク</strong>という手順を踏み、暗号通信を開始します。
+        これによって、通信経路の途中（例えば公衆Wi-Fiなど）で内容を盗み見られたり書き換えられたりすることを防ぎます。
+      </p>
+      <div class="tls-diagram">
+        🔓 HTTP（平文）  &nbsp; &nbsp; →  &nbsp; &nbsp; 🔒 HTTPS = HTTP + TLS（暗号化）
+      </div>
+    </div>
+
+    <!-- ステップ3 -->
+    <div class="step">
+      <div class="step-title">📨 HTTPリクエストの送信</div>
+      <p>接続が確立したら、ブラウザはサーバーに対して「このページをください」という<strong>HTTPリクエスト</strong>を送ります。リクエストは大きく以下の3つのパートから構成されています。</p>
+
+      <h4>リクエストの実例</h4>
+      <div class="http-message"><span class="method">GET</span> <span class="path">/index.html</span> HTTP/1.1
+<span class="header-name">Host:</span> example.com
+<span class="header-name">User-Agent:</span> Mozilla/5.0 (Windows NT 10.0; ...)
+<span class="header-name">Accept:</span> text/html,application/xhtml+xml
+<span class="header-name">Accept-Language:</span> ja,en;q=0.9
+<span class="header-name">Cookie:</span> sessionid=abc123
+<span class="comment"># （空行のあとに本文が入ることもある）</span></div>
+
+      <h4>主なHTTPメソッド</h4>
+      <table>
+        <tr><th>メソッド</th><th>意味</th><th>例</th></tr>
+        <tr><td><code>GET</code></td><td>データを取得したい</td><td>ページや画像を表示する</td></tr>
+        <tr><td><code>POST</code></td><td>データを送信・新規登録したい</td><td>フォーム送信、コメント投稿</td></tr>
+        <tr><td><code>PUT</code></td><td>データを置き換えたい</td><td>プロフィールを丸ごと更新</td></tr>
+        <tr><td><code>DELETE</code></td><td>データを削除したい</td><td>投稿を消す</td></tr>
+        <tr><td><code>PATCH</code></td><td>データを一部変更したい</td><td>名前だけ変更する</td></tr>
+      </table>
+
+      <h4>ヘッダーの役割</h4>
+      <p>
+        ヘッダーは「補足情報」を伝える欄です。ブラウザの種類（<code>User-Agent</code>）、
+        受け入れられる形式（<code>Accept</code>）、前回ログイン情報（<code>Cookie</code>）などを添えることで、
+        サーバーは適切なレスポンスを選んで返すことができます。
+      </p>
+    </div>
+
+    <!-- ステップ4 -->
+    <div class="step">
+      <div class="step-title">📬 サーバーからのレスポンス</div>
+      <p>
+        サーバーはリクエストを受け取ると、該当するファイルを探したり、データベースを調べたりして、
+        その結果を<strong>HTTPレスポンス</strong>として返します。
+      </p>
+
+      <h4>レスポンスの実例</h4>
+      <div class="http-message">HTTP/1.1 <span class="status">200 OK</span>
+<span class="header-name">Content-Type:</span> text/html; charset=UTF-8
+<span class="header-name">Content-Length:</span> 1270
+<span class="header-name">Date:</span> Fri, 17 Apr 2026 09:00:00 GMT
+
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;&lt;head&gt;&lt;title&gt;Example&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;...&lt;/body&gt;&lt;/html&gt;</div>
+
+      <h4>ステータスコードの種類</h4>
+      <p>レスポンスの先頭には必ず<strong>3桁のステータスコード</strong>がついており、処理結果を一目で伝えます。先頭の数字で大まかな意味が分かれています。</p>
+      <div class="status-grid">
+        <div class="status-card status-1xx"><span class="status-code">1xx</span>情報（処理継続中）</div>
+        <div class="status-card status-2xx"><span class="status-code">2xx</span>成功</div>
+        <div class="status-card status-3xx"><span class="status-code">3xx</span>リダイレクト（別の場所へ）</div>
+        <div class="status-card status-4xx"><span class="status-code">4xx</span>クライアント側のエラー</div>
+        <div class="status-card status-5xx"><span class="status-code">5xx</span>サーバー側のエラー</div>
+      </div>
+
+      <h4>よく見かけるステータスコード</h4>
+      <table>
+        <tr><th>コード</th><th>意味</th><th>典型例</th></tr>
+        <tr><td><code>200 OK</code></td><td>成功</td><td>通常のページ表示</td></tr>
+        <tr><td><code>301 / 302</code></td><td>リダイレクト</td><td>URLが変わった / 一時的な転送</td></tr>
+        <tr><td><code>304 Not Modified</code></td><td>変更なし（キャッシュ利用）</td><td>前回と同じなので再利用</td></tr>
+        <tr><td><code>400 Bad Request</code></td><td>リクエストが壊れている</td><td>形式不正</td></tr>
+        <tr><td><code>401 Unauthorized</code></td><td>認証が必要</td><td>未ログイン状態</td></tr>
+        <tr><td><code>403 Forbidden</code></td><td>閲覧権限なし</td><td>管理者専用ページ</td></tr>
+        <tr><td><code>404 Not Found</code></td><td>ページが見つからない</td><td>URLの打ち間違え、削除済み</td></tr>
+        <tr><td><code>500 Internal Server Error</code></td><td>サーバー側で想定外のエラー</td><td>プログラムの不具合</td></tr>
+        <tr><td><code>503 Service Unavailable</code></td><td>一時的にサービス停止</td><td>メンテナンス、過負荷</td></tr>
+      </table>
+    </div>
+
+    <!-- ステップ5 -->
+    <div class="step">
+      <div class="step-title">🧩 HTMLの解析と追加リソースの取得</div>
+      <p>
+        ブラウザが最初に受け取るのは、通常HTMLファイルです。
+        しかしHTMLの中には、<strong>「この画像も読み込んで」「このCSSも必要」「このJavaScriptも実行して」</strong>といった指示が書かれています。
+      </p>
+      <p>
+        ブラウザはHTMLを上から順に解析しながら、必要な追加ファイルに対してさらにHTTPリクエストを送っていきます。
+        最近のブラウザは並列に複数のリクエストを飛ばすため、効率よくページを構築できます。
+      </p>
+      <div class="flow-diagram">
+        <div class="flow-row">
+          <div class="flow-actor">🖥️ ブラウザ</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-msg">GET /index.html <span style="color:#64748b">（最初の1回）</span></div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-actor">🖥️ ブラウザ</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-msg">GET /style.css <span style="color:#64748b">（デザインを整える）</span></div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-actor">🖥️ ブラウザ</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-msg">GET /script.js <span style="color:#64748b">（動きをつける）</span></div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-actor">🖥️ ブラウザ</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-msg">GET /logo.png <span style="color:#64748b">（画像などの素材）</span></div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-actor">🖥️ ブラウザ</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-msg">GET /api/user.json <span style="color:#64748b">（APIからのデータ）</span></div>
+        </div>
+      </div>
+      <div class="note">
+        <div class="note-title">⚡ キャッシュで高速化</div>
+        一度取得したファイルはブラウザのキャッシュに保存され、次回訪問時はネットワークを使わずに表示されます。
+        サーバー側も <code>Cache-Control</code> や <code>ETag</code> などのヘッダーで「どれくらいキャッシュして良いか」を指示します。
+      </div>
+    </div>
+
+    <!-- ステップ6 -->
+    <div class="step">
+      <div class="step-title">🎨 ページのレンダリング（描画）</div>
+      <p>必要な素材が揃うと、ブラウザは以下の工程を経て画面にページを描き出します。</p>
+      <ul>
+        <li><strong>DOMツリーの構築</strong>：HTMLを解析して「どんな要素がどんな階層で並ぶか」の設計図（DOM）を作る</li>
+        <li><strong>CSSOMツリーの構築</strong>：CSSを解析して「何をどんな見た目にするか」を決める</li>
+        <li><strong>レイアウト計算</strong>：各要素の位置やサイズを算出する</li>
+        <li><strong>ペイント</strong>：実際にピクセルとして画面に描画する</li>
+        <li><strong>JavaScriptの実行</strong>：動的な変更を加える（ボタンの挙動、アニメーション、APIとの通信など）</li>
+      </ul>
+      <p>
+        あなたが見ている1枚のページは、実は裏側で
+        <span class="highlight">DNS問合せ → TCP/TLS接続 → 何十回ものHTTPリクエスト・レスポンス → 解析 → 描画</span>
+        という長い工程を、ほんの数秒以内にこなした結果なのです。
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========== HTMLとの関係 ========== -->
+<div class="section">
+  <h2>📄 HTMLとの関係</h2>
+  <p>
+    <strong>HTML（HyperText Markup Language）</strong>は、ウェブページの<strong>中身（テキスト・画像・リンクなど）と構造（見出し、段落、リストなど）</strong>を記述するための言語です。
+    「Markup（マークアップ）」とは、文章に目印（タグ）をつけて意味を与える、という意味です。
+  </p>
+
+  <h3>🏷️ HTMLのタグの例</h3>
+  <div class="html-tree">
+<span class="tag">&lt;!DOCTYPE html&gt;</span>
+<span class="tag">&lt;html&gt;</span>
+  <span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;title&gt;</span><span class="txt">サンプルページ</span><span class="tag">&lt;/title&gt;</span>
+  <span class="tag">&lt;/head&gt;</span>
+  <span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;h1&gt;</span><span class="txt">大きな見出し</span><span class="tag">&lt;/h1&gt;</span>
+    <span class="tag">&lt;p&gt;</span><span class="txt">段落のテキストです。</span><span class="tag">&lt;/p&gt;</span>
+    <span class="tag">&lt;a </span><span class="attr">href=</span><span class="txt">"https://example.com"</span><span class="tag">&gt;</span><span class="txt">リンク</span><span class="tag">&lt;/a&gt;</span>
+    <span class="tag">&lt;img </span><span class="attr">src=</span><span class="txt">"photo.jpg"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;/body&gt;</span>
+<span class="tag">&lt;/html&gt;</span>
+  </div>
+  <p>
+    <code>&lt;h1&gt;</code> は見出し、<code>&lt;p&gt;</code> は段落、<code>&lt;a&gt;</code> はリンク、<code>&lt;img&gt;</code> は画像、
+    というように、各タグが「ここは何を表す部分か」を意味づけます。
+  </p>
+
+  <h3>🎭 役割分担：HTML / CSS / JavaScript</h3>
+  <div class="two-col">
+    <div class="col-card">
+      <h4>🏗️ HTML</h4>
+      <strong>構造・中身</strong><br>
+      ページの骨組みを決める
+    </div>
+    <div class="col-card alt">
+      <h4>🎨 CSS</h4>
+      <strong>見た目</strong><br>
+      色、フォント、レイアウトなどのデザイン
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="col-card">
+      <h4>⚙️ JavaScript</h4>
+      <strong>動き・対話</strong><br>
+      ボタンを押したときの挙動、APIとの通信など
+    </div>
+    <div class="col-card alt">
+      <h4>📡 HTTP</h4>
+      <strong>配送手段</strong><br>
+      これら全てを運ぶための通信プロトコル
+    </div>
+  </div>
+
+  <h3>🚚 HTTPとHTMLの関係を配達に例えると</h3>
+  <div class="analogy">
+    <div class="analogy-item">
+      <span class="emoji">🚚</span>
+      <div class="label">HTTP</div>
+      <div>配達の仕組み</div>
+    </div>
+    <div class="analogy-arrow">+</div>
+    <div class="analogy-item">
+      <span class="emoji">📦</span>
+      <div class="label">HTML</div>
+      <div>配達される荷物の中身</div>
+    </div>
+    <div class="analogy-arrow">=</div>
+    <div class="analogy-item">
+      <span class="emoji">🌍</span>
+      <div class="label">ウェブページ</div>
+      <div>あなたが見ているもの</div>
+    </div>
+  </div>
+
+  <p>
+    HTTPは「<strong>荷物を届ける運び屋</strong>」、HTMLは「<strong>運ばれる中身</strong>」。
+    HTTPはHTMLだけでなく、画像（JPEG/PNG）、動画（MP4）、CSSファイル、JavaScriptファイル、
+    APIから返ってくるJSONデータなど、<strong>ありとあらゆるデータ</strong>を運ぶことができます。
+  </p>
+
+  <div class="warning">
+    <div class="warning-title">📝 覚えておきたいポイント</div>
+    <ul style="margin:0;">
+      <li>HTMLだけでは「見た目」や「動き」は作れない（CSSやJSと役割分担している）</li>
+      <li>HTTPはHTML専用ではなく、<em>あらゆる形式のデータ</em>を運ぶ汎用プロトコル</li>
+      <li>「ウェブページを見る」＝「裏で大量のHTTPリクエスト・レスポンスが飛び交う」ということ</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ========== まとめ ========== -->
+<div class="section" style="text-align:center; background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+  <h2 style="color:white; background:transparent; border:none;">✨ まとめ</h2>
+  <p style="font-size: 1.15em; line-height: 2;">
+    <strong>HTTP</strong> = ブラウザとサーバーの会話ルール（リクエスト ⇄ レスポンス）<br>
+    <strong>HTML</strong> = ウェブページの中身と構造を表す言語<br>
+    <strong>DNS / TLS / CSS / JavaScript</strong> がそれぞれ役割を分担<br>
+    <br>
+    これらが協力しあって、世界中のウェブの世界ができています 🌐
+  </p>
+</div>
+
+</body>
+</html>
