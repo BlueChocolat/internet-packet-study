@@ -436,18 +436,6 @@
 </div>
 </div>
 
-<!-- Python -->
-<h2>🐍 Pythonで体験してみる</h2>
-<div class="section">
-<p>初心者の方向けに、実際に経路を見られる簡単なコードを紹介します。</p>
-<pre><span class="keyword">import</span> subprocess
-
-<span class="comment"># google.comまでの経路を調べる(Windowsならtracert、Mac/Linuxならtraceroute)</span>
-result = subprocess.run([<span class="string">'tracert'</span>, <span class="string">'google.com'</span>], capture_output=<span class="keyword">True</span>, text=<span class="keyword">True</span>)
-<span class="keyword">print</span>(result.stdout)</pre>
-<p>これを実行すると、あなたのPCからGoogleまで、パケットがどのルーターを経由しているかが表示されます。興味があったら試してみてください!</p>
-</div>
-
 <!-- まとめ -->
 <div class="summary">
 <h2 style="color:white;border:none;margin-top:0;">📝 まとめ</h2>
